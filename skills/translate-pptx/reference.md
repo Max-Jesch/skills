@@ -32,14 +32,32 @@ when the file opens — and our LibreOffice render approximates it for review.
   **thousandths of a percent** (`80000` = 80%).
 - `lnSpcReduction` — reduce line spacing by this %, same units (`10000` = 10%).
 
-`apply.py` writes a bare `<a:normAutofit/>` by default (PowerPoint/LibreOffice
-recompute it). When you set `"font_scale"` / `"line_reduction"` on a frame in
-the job JSON, it bakes them in as the percentages above — so the box renders
-small *immediately*, even in viewers that don't recompute autofit. This is the
-deterministic lever for the rare box that autofit alone doesn't tame. Pick the
-value by looking at renders, not by computing font metrics (that path is
-brittle: it needs the exact font installed, and Windows fonts like Calibri and
-Cambria aren't on macOS/Linux).
+`apply.py` writes a bare `<a:normAutofit/>` by default. **Real PowerPoint**
+recomputes the fit on open and shrinks the text. **LibreOffice and PDF export do
+NOT** — they ignore `normAutofit` entirely and render every box at its nominal
+font size. So a box that PowerPoint would quietly shrink shows up in our render
+as overflowing. That is why the review render is only a *proxy*, and why the
+force-scale lever below does not touch `fontScale`.
+
+### The force-scale lever (`font_scale` / `line_reduction`)
+
+When you set `"font_scale"` on a frame in the job JSON, `apply.py` multiplies
+the **explicit run font sizes** (`sz`) in that box by the percentage — it does
+*not* bake `normAutofit fontScale`. Scaling the real sizes is the whole point:
+it renders identically in LibreOffice, PDF, and PowerPoint, so what you see in
+review is what the user gets. (Baking `fontScale` would be invisible in the
+render — see above — and would also double-shrink in PowerPoint on top of the
+reduced sizes.) `"line_reduction"` still writes `lnSpcReduction` on the
+`normAutofit`.
+
+Pick the value by looking at renders, not by computing font metrics (that path
+is brittle: it needs the exact font installed, and Windows fonts like Calibri
+and Cambria aren't on macOS/Linux). Drop it a step, re-render, repeat.
+
+**Caveat:** a run with no explicit `sz` inherits its size from the
+placeholder/theme; `font_scale` has nothing to scale there, and only real
+PowerPoint (via `normAutofit`) will shrink it. Those boxes need a manual size in
+PowerPoint, or a note to the user.
 
 ## Job JSON schema
 
@@ -78,6 +96,14 @@ Cambria aren't on macOS/Linux).
 `apply.py` puts the whole translated paragraph into the paragraph's **first
 run** and blanks the remaining runs. This preserves the first run's formatting
 (font, size, color, bold) for the paragraph.
+
+**Line breaks:** python-pptx exposes an in-paragraph break (`<a:br/>`) as a
+vertical tab (`\x0b`/``) in `.text`, so it lands in the job JSON's `src`. On
+write-back a vertical tab assigned to a run's text would be *escaped* to the
+literal string `_x000B_` (visible garbage on the slide). `apply.py` instead
+splits `tgt` on vertical tab / newline and rebuilds the trailing segments as
+real `<a:br/>` + run pairs cloned from the first run, so multi-line titles
+survive intact.
 
 **Limitation:** intra-paragraph formatting variation is lost — e.g. if one word
 in a sentence was bold or a different color, the whole translated paragraph

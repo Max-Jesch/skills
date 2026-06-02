@@ -1,4 +1,5 @@
 ---
+name: create-a-mode
 description: >-
   Guide for creating a new custom Bob mode (custom_modes.yaml) — covers the
   schema, permission groups, roleDefinition, and file location. Use when the

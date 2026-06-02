@@ -1,4 +1,5 @@
 ---
+name: create-a-custom-mcp
 description: >-
   Guide for registering a new custom MCP server (mcp.json) — covers local vs
   remote transport, config fields, secrets handling, and scope. Use when the

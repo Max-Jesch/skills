@@ -1,4 +1,5 @@
 ---
+name: create-a-skill
 description: >-
   Guide for creating a new Bob skill (SKILL.md) — covers the frontmatter
   schema, name rules, file location, and gotchas. Use when the user wants to

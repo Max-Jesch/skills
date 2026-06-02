@@ -1,4 +1,5 @@
 ---
+name: create-plan
 description: >-
   Structured workflow for gathering requirements, researching the codebase,
   writing a plan file. Use when the user wants to create a plan, design a
